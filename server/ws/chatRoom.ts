@@ -1,17 +1,20 @@
 import { v4 } from 'https://deno.land/std@0.95.0/uuid/mod.ts';
+import { messages } from '../app.ts';
 
 const sockets = new Map<string, WebSocket>();
 
 type SocketMessage = {
   _id: string;
-  clientEvent: ClientEvent;
+  clientEvent: SocketEvent;
   message?: string;
 };
 
-type ClientEvent =
+type SocketEvent =
   | 'CLIENT_CONNECTED'
   | 'CLIENT_DISCONNECTED'
-  | 'MESSAGE_RECEIVED';
+  | 'MESSAGE_RECEIVED'
+  | 'PING'
+  | 'PONG';
 
 export const chatConnection = (ws: WebSocket) => {
   // aadd new ws to map
@@ -31,8 +34,13 @@ export const chatConnection = (ws: WebSocket) => {
   });
 
   ws.addEventListener('message', ({ data }) => {
-    console.log(JSON.parse(data));
-    broadCastMessage(data);
+    const message = JSON.parse(data) as SocketMessage;
+    if (message.clientEvent === 'PING') {
+      ws.send('PONG');
+    } else {
+      broadCastMessage(data);
+      messages.push(data);
+    }
   });
 };
 
